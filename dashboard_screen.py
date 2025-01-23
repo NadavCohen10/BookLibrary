@@ -1,7 +1,6 @@
-import email
 import tkinter as tk
 from tkinter import messagebox
-from unicodedata import digit
+
 
 from library import Library  # ייבוא ספריית Library
 from Book import Book as bk
@@ -11,15 +10,16 @@ from strategy_search import TitleSearchStrategy, AuthorSearchStrategy, YearSearc
 
 
 class DashboardScreen(tk.Frame):
+    # Initialize dashboard with library and UI elements
     def __init__(self, master):
         super().__init__(master)
-        self.library = Library()  # יצירת אובייקט ספרייה
-        self.library.set_book()
+        self.library = Library()    # Create library object
+        self.library.set_book()     # Create library object
 
-        # תווית כותרת
+        # Create dashboard title
         tk.Label(self, text="Welcome to Library System", font=("Arial", 18)).pack(pady=20)
 
-        # כפתורים עבור כל פעולה
+        # Create buttons for various library operations
         tk.Button(self, text="Add Book", command=self.add_book).pack(pady=10)
         tk.Button(self, text="Remove Book", command=self.remove_book).pack(pady=10)
         tk.Button(self, text="Search Book", command=self.search_book).pack(pady=10)
@@ -29,12 +29,13 @@ class DashboardScreen(tk.Frame):
         tk.Button(self, text="Popular Books", command=self.popular_books).pack(pady=10)
         tk.Button(self, text="Logout", command=self.logout).pack(pady=10)
 
-    # הוספת ספר חדש
+
     def add_book(self):
-        # יצירת חלון חדש לקבלת פרטי הספר
+        # Open window to add a new book to library
         window = tk.Toplevel(self)
         window.title("Add Book")
 
+        # Create input fields for book details
         tk.Label(window, text="Enter Book Title:").pack(pady=5)
         title_entry = tk.Entry(window)
         title_entry.pack(pady=5)
@@ -56,7 +57,7 @@ class DashboardScreen(tk.Frame):
         year_entry.pack(pady=5)
 
         def submit():
-            # קבלת הנתונים שהוזנו
+            # Validation to ensure all fields are filled and valid
             if (title_entry.get() == "" or author_entry.get() == "" or copies_entry.get() == ""
                     or genre_entry.get() == "" or year_entry.get() == ""
             or copies_entry.get().isdigit() == False or year_entry.get().isdigit()== False
@@ -69,11 +70,13 @@ class DashboardScreen(tk.Frame):
                 genre = genre_entry.get()
                 year = int(year_entry.get())
 
-
+                # Create book object and add to library
                 book = bk(title, author, "No", copies, genre, year)
 
                 messagebox.showinfo("Add Book", self.library.add_book(book))
                 window.destroy()
+
+                # Check waiting list and process borrowing if book is available
                 b = self.library.get_book(title)
                 if title in self.library.waiting_list:
                     while len(self.library.waiting_list[title]) > 0 and b.is_available():
@@ -87,7 +90,7 @@ class DashboardScreen(tk.Frame):
 
     # הסרת ספר
     def remove_book(self):
-        # יצירת חלון חדש לקבלת פרטי הספר להסרה
+        # Open dialog to remove a book from the library by title
         window = tk.Toplevel(self)
         window.title("Remove Book")
 
@@ -96,8 +99,8 @@ class DashboardScreen(tk.Frame):
         title_entry.pack(pady=5)
 
         def submit():
+            # Remove book and show result
             title = title_entry.get()
-
             if title != "":
                 messagebox.showinfo("Remove Book", self.library.remove_book(title))
             else:
@@ -108,9 +111,11 @@ class DashboardScreen(tk.Frame):
         submit_button.pack(pady=10)
 
     def search_book(self):
+        # Open dialog to search books using different strategies
         window = tk.Toplevel(self)
         window.title("Search Book")
 
+        # Radio buttons for search criteria selection
         tk.Label(window, text="Select search type:").pack(pady=5)
         search_type = tk.StringVar(value="Title")
         tk.Radiobutton(window, text="Title", variable=search_type, value="Title").pack()
@@ -123,10 +128,12 @@ class DashboardScreen(tk.Frame):
         search_entry.pack(pady=5)
 
         def submit():
+            # Dynamically select search strategy based on user's choice
             value = search_entry.get()
             criteria = search_type.get()
             search_strategy = None
 
+            # Select appropriate search strategy
             if criteria == "Title":
                 try:
                     search_strategy = TitleSearchStrategy()
@@ -153,6 +160,7 @@ class DashboardScreen(tk.Frame):
                 except:
                     logger(f"Search book {value} by year fail")
 
+            # Perform search and display results
             search_context = SearchContext(search_strategy)
             found_books = search_context.search(self.library.get_books(), value)
 
@@ -166,12 +174,12 @@ class DashboardScreen(tk.Frame):
         submit_button.pack(pady=10)
 
 
-    # הצגת כל הספרים
     def view_books(self):
-
+        # Open dialog to view books with different filtering options
         window = tk.Toplevel(self)
         window.title("View Book")
 
+        # Radio buttons for book view type
         tk.Label(window, text="Select view type:").pack(pady=5)
         view_type = tk.StringVar(value="all books")
         tk.Radiobutton(window, text="All Books", variable=view_type, value="all books").pack()
@@ -180,43 +188,31 @@ class DashboardScreen(tk.Frame):
 
 
         def submit():
-
+            # Display books based on selected criteria
             criteria = view_type.get()
             message = ""
 
             if criteria == "all books":
-                try:
-                    message = self.library.view_books(self.library.get_books())
-                    logger(f"Displayed all books successfully")
-                except:
-                    logger(f"Displayed all books fail")
+                message = self.library.view_books(self.library.get_books())
             elif criteria == "loaned books":
-                try:
-                    message = self.library.view_books(self.library.get_loaned_books())
-                    logger(f"Displayed loaned books successfully")
-                except:
-                    logger(f"Displayed loaned books fail")
+                message = self.library.view_books(self.library.get_loaned_books())
             elif criteria == "Available books":
-                try:
                     message = self.library.view_books(self.library.get_available_books())
-                    logger(f"Displayed available books successfully")
-                except:
-                    logger(f"Displayed available books fail")
 
+            # Show results or error message
             if message != "":
                 messagebox.showinfo("View Book", message)
-                #logger(f"Displayed {criteria} successfully")
+                logger(f"Displayed {criteria} successfully")
             else:
                 messagebox.showerror("View Book", "No books found!")
-                #logger(f"Displayed {criteria} fail")
+                logger(f"Displayed {criteria} fail")
             window.destroy()
 
         submit_button = tk.Button(window, text="Submit", command=submit)
         submit_button.pack(pady=10)
 
-    # השאלת ספר
     def lend_book(self):
-        # יצירת חלון חדש לקבלת פרטי הספר להשאלה
+        # Open dialog to lend a book
         window = tk.Toplevel(self)
         window.title("Lend Book")
 
@@ -225,8 +221,8 @@ class DashboardScreen(tk.Frame):
         title_entry.pack(pady=5)
 
         def submit():
+            # Attempt to borrow book, add to waiting list if unavailable
             title = title_entry.get()
-
             if title !="":
                 result = self.library.borrow_book(title)
                 if result is not False:
@@ -242,6 +238,8 @@ class DashboardScreen(tk.Frame):
         submit_button.pack(pady=10)
 
     def waiting_list(self,title):
+
+        # Open dialog to add user to waiting list for unavailable book
         window = tk.Toplevel(self)
         window.title("Waiting List")
         tk.Label(window, text="Enter Name:").pack(pady=5)
@@ -258,6 +256,7 @@ class DashboardScreen(tk.Frame):
             phone = phone_entry.get()
             email = email_entry.get()
 
+            # Validate contact information before adding to waiting list
             if phone.isdigit() and "@" in email:
                 messagebox.showinfo("Waiting liat",self.library.add_to_wait_list(title,name, phone, email))
                 window.destroy()
@@ -269,9 +268,8 @@ class DashboardScreen(tk.Frame):
 
 
 
-    # החזרת ספר
     def return_book(self):
-        # יצירת חלון חדש לקבלת פרטי הספר להחזרה
+        # Open dialog to return a book
         window = tk.Toplevel(self)
         window.title("Return Book")
 
@@ -280,10 +278,9 @@ class DashboardScreen(tk.Frame):
         title_entry.pack(pady=5)
 
         def submit():
+            # Process book return and check waiting list
             title = title_entry.get()
-
             if title !="":
-
                 messagebox.showinfo("Return Book", self.library.return_book(title))
                 b = self.library.get_book(title)
                 if title in self.library.waiting_list:
@@ -297,8 +294,8 @@ class DashboardScreen(tk.Frame):
         submit_button = tk.Button(window, text="Submit", command=submit)
         submit_button.pack(pady=10)
 
-    # חזרה למסך הראשי
     def logout(self):
+        # Log out and return to main menu
         try:
             logger(f"log out successful")
             messagebox.showinfo("Logout", "You have logged out!")
@@ -306,10 +303,8 @@ class DashboardScreen(tk.Frame):
         except:
             logger(f"log out fail")
 
-    # הצגת ספרים פופולריים
     def popular_books(self):
-
-
+        # Display most popular books in the library
         books = self.library.popular_books()
         if books:
             message = "Popular Books in library:"
