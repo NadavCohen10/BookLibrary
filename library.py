@@ -6,12 +6,13 @@ from log_write import logger
 
 
 class Library():
-    # Class variables to store different book collections
-    book_list = [] # All books in the library
-    waiting_list = {} # Waiting list for books
-    loaned_book_list = [] # Books currently loaned out
-    available_book_list = [] # Books available for borrowing
-
+    def __init__(self):
+        # Variables to store different book collections
+        self.__book_list = [] # All books in the library
+        self.__waiting_list = {} # Waiting list for books
+        self.__loaned_book_list = [] # Books currently loaned out
+        self.__available_book_list = [] # Books available for borrowing
+    
     # Load book data from CSV files
     def load_book_list(self):
         return pd.read_csv('books.csv')
@@ -29,38 +30,38 @@ class Library():
         for _, row in books.iterrows():
             # Create Book objects from CSV data
             book = bk(row["title"], row["author"], row["is_loaned"], row["copies"], row["genre"], row["year"])
-            Library.book_list.append(book)
+            self.__book_list.append(book)
 
         # Categorize books into available and loaned lists
-        for book in Library.book_list:
+        for book in self.__book_list:
             """first initialization for the files"""
             # books = pd.DataFrame(book.get_dict())
             if book.is_available():
                 """first initialization for the files"""
                 #books.to_csv('available_books.csv', mode='a', index=False, header=False)
-                Library.available_book_list.append(book)
+                self.__available_book_list.append(book)
             else:
                 """first initialization for the files"""
                # books.to_csv('loaned_books.csv', mode='a', index=False, header=False)
-                Library.loaned_book_list.append(book)
+                self.__loaned_book_list.append(book)
 
         # Handle books with changed loan status
         loaned_books = self.load_loaned_book_list()
         for _, row in loaned_books.iterrows():
             if row['is_loaned'] == "No":
-                for book in Library.book_list:
+                for book in self.__book_list:
                     if book.get_title() == row['title']:
                         book.reduce(row['copies'])
-                        Library.loaned_book_list.append(book)
+                        self.__loaned_book_list.append(book)
 
         # Populate waiting list
         waiting = self.load_waiting_list()
         for _, row in waiting.iterrows():
-            if row['title'] not in Library.waiting_list:
-                Library.waiting_list[row['title']] = deque()
+            if row['title'] not in self.__waiting_list:
+                self.__waiting_list[row['title']] = deque()
 
             person = {'name': row['name'],'phone': row['phone'], 'email': row['email']}
-            Library.waiting_list[row['title']].append(person)
+            self.__waiting_list[row['title']].append(person)
 
 
     def add_book(self,book):
@@ -75,8 +76,8 @@ class Library():
             avail_books.to_csv('available_books.csv', mode='a', index=False, header=False)
             avail_books.to_csv('books.csv', mode='a', index=False, header=False)
 
-            Library.book_list.append(book)
-            Library.available_book_list.append(book)
+            self.__book_list.append(book)
+            self.__available_book_list.append(book)
 
             logger('book added successfully')
             return f"Added {book.get_title()} to books list"
@@ -103,7 +104,7 @@ class Library():
             b.add_copies(str(book.get_copies()))
             if b.is_loaned() == "Yes":
                 b.set_loaned("No")
-                Library.available_book_list.append(b)
+                self.__available_book_list.append(b)
 
             books.loc[books['title'] == book.get_title(), 'is_loaned'] = "No"
             loaned_books = self.load_loaned_book_list()
@@ -121,16 +122,16 @@ class Library():
     def add_to_wait_list(self,book,name,phone,email):
 
         # Add a person to the waiting list for a specific book
-        if book not in Library.waiting_list:
-            Library.waiting_list[book] = deque()
+        if book not in self.__waiting_list:
+            self.__waiting_list[book] = deque()
 
         # Check if person is already in waiting list
-        for _, person in enumerate(Library.waiting_list[book]):
+        for _, person in enumerate(self.__waiting_list[book]):
             if str(person["phone"]) == str(phone):
                 return "Person is already in waiting list"
 
         # Add person to waiting list
-        Library.waiting_list[book].append({"name": name, "phone": phone, "email": email})
+        self.__waiting_list[book].append({"name": name, "phone": phone, "email": email})
         self.update_waiting_list_file()
         return f"{name} has been added to waiting list of the book {book}"
 
@@ -146,8 +147,8 @@ class Library():
             waiting.to_csv('waiting_list.csv', index=False)
 
         # Rewrite waiting list data to CSV
-        for title in Library.waiting_list:
-            for person in Library.waiting_list[title]:
+        for title in self.__waiting_list:
+            for person in self.__waiting_list[title]:
                 data = {
                     'title': [title],
                     'name': [person["name"]],
@@ -160,7 +161,7 @@ class Library():
 
     def borrow_book(self,book):
         # Find the book in the library's book list
-        for b in Library.book_list:
+        for b in self.__book_list:
             if b.get_title() == book:
                 # Check if book is available
                 if b.is_available():
@@ -189,7 +190,7 @@ class Library():
             loaned_books = pd.DataFrame(book.get_dict())
             loaned_books.loc[loaned_books['title'] == book.get_title(), 'copies'] = 0
             loaned_books.to_csv('loaned_books.csv', mode='a', index=False, header=False)
-            Library.loaned_book_list.append(book)
+            self.__loaned_book_list.append(book)
 
         # Increase loaned copies
         loaned_books = self.load_loaned_book_list()
@@ -198,7 +199,7 @@ class Library():
 
         # Update book and list status when no copies are available
         if int(book.get_available()) == 0:
-            Library.available_book_list.remove(book)
+            self.__available_book_list.remove(book)
             book.set_loaned("Yes")
 
             # Update loan status in CSVs
@@ -222,7 +223,7 @@ class Library():
     
     def return_book(self,book):
         # Find the book in loaned book list
-        for b in Library.loaned_book_list:
+        for b in self.__loaned_book_list:
             if b.get_title() == book:
                 book = b
                 break
@@ -264,7 +265,7 @@ class Library():
             available_books = self.load_available_book_list()
             available_books.loc[available_books['title'] == book.get_title(), 'copies'] = book.get_available()
             available_books.to_csv('available_books.csv', index=False)
-            Library.available_book_list.append(book)
+            self.__available_book_list.append(book)
 
         # Remove from loaned books if fully available
         if book.fully_available():
@@ -273,20 +274,23 @@ class Library():
             df_filtered = loaned_books[loaned_books[first_col_name] != book.get_title()]
             # Save the updated DataFrame back to the file
             df_filtered.to_csv("loaned_books.csv", index=False)
-            Library.loaned_book_list.remove(book)
+            self.__loaned_book_list.remove(book)
 
         logger("book returned successfully")
         return f"book {book.get_title()} returned"
 
     # Getter methods to retrieve book lists
     def get_books(self):
-        return Library.book_list
+        return self.__book_list
 
     def get_available_books(self):
-        return Library.available_book_list
+        return self.__available_book_list
 
     def get_loaned_books(self):
-        return Library.loaned_book_list
+        return self.__loaned_book_list
+
+    def get_waiting_list(self):
+        return self.__waiting_list
 
     def view_books(self,books):
         # Create a string of book titles
@@ -299,7 +303,7 @@ class Library():
 
     def remove_book(self,book):
         # Find the book in book list
-        for b in Library.book_list:
+        for b in self.__book_list:
             if b.get_title() == book:
                 book = b
                 break
@@ -310,8 +314,8 @@ class Library():
         if book.fully_available():
 
             # Remove from library lists
-            Library.book_list.remove(book)
-            Library.available_book_list.remove(book)
+            self.__book_list.remove(book)
+            self.__available_book_list.remove(book)
 
             # Load book DataFrames
             books = self.load_book_list()
@@ -336,11 +340,11 @@ class Library():
         # Calculate popularity based on loans and waiting list
         popular_books_arr = []
 
-        for i in range(len(Library.book_list)):
-            book = Library.book_list[i]
+        for i in range(len(self.__book_list)):
+            book = self.__book_list[i]
             waiting_count = 0
-            if book.get_title() in Library.waiting_list:
-                waiting_count =len(Library.waiting_list[book.get_title()])
+            if book.get_title() in self.__waiting_list:
+                waiting_count =len(self.__waiting_list[book.get_title()])
 
             # Popularity = (copies loaned + waiting list)
             popular_books_arr.append((waiting_count + book.get_copies() - book.get_available(),book.get_title()))
@@ -354,9 +358,9 @@ class Library():
         return popular_books_arr
     def pop_waiting_list(self,book):
         # Process waiting list for a book
-        if len(Library.waiting_list[book.get_title()]) >0 and book.is_available():
+        if len(self.__waiting_list[book.get_title()]) >0 and book.is_available():
             # Remove first person from waiting list
-            first_person = Library.waiting_list[book.get_title()].popleft()
+            first_person = self.__waiting_list[book.get_title()].popleft()
             self.update_waiting_list_file()
             return self.notify(book.get_title(), first_person['name'],first_person['phone'],first_person['email'])
 
@@ -368,7 +372,7 @@ class Library():
 
     def get_book(self,title):
         # Find a book by its title
-        for book in Library.book_list:
+        for book in self.__book_list:
             if book.get_title() == title:
                 return book
         else:

@@ -78,8 +78,8 @@ class DashboardScreen(tk.Frame):
 
                 # Check waiting list and process borrowing if book is available
                 b = self.library.get_book(title)
-                if title in self.library.waiting_list:
-                    while len(self.library.waiting_list[title]) > 0 and b.is_available():
+                if title in self.library.get_waiting_list():
+                    while len(self.library.get_waiting_list()[title]) > 0 and b.is_available():
                         messagebox.showinfo("borrowed from waiting list", self.library.pop_waiting_list(b))
                         messagebox.showinfo("borrowed from waiting list",self.library.borrow_book(title))
 
@@ -117,11 +117,11 @@ class DashboardScreen(tk.Frame):
 
         # Radio buttons for search criteria selection
         tk.Label(window, text="Select search type:").pack(pady=5)
-        search_type = tk.StringVar(value="Title")
-        tk.Radiobutton(window, text="Title", variable=search_type, value="Title").pack()
-        tk.Radiobutton(window, text="Author", variable=search_type, value="Author").pack()
-        tk.Radiobutton(window, text="Genre", variable=search_type, value="Genre").pack()
-        tk.Radiobutton(window, text="Year", variable=search_type, value="Year").pack()
+        search_type = tk.StringVar(value="title")
+        tk.Radiobutton(window, text="Title", variable=search_type, value="title").pack()
+        tk.Radiobutton(window, text="Author", variable=search_type, value="author").pack()
+        tk.Radiobutton(window, text="Genre", variable=search_type, value="category").pack()
+        tk.Radiobutton(window, text="Year", variable=search_type, value="year").pack()
 
         tk.Label(window, text="Enter search value:").pack(pady=5)
         search_entry = tk.Entry(window)
@@ -134,39 +134,27 @@ class DashboardScreen(tk.Frame):
             search_strategy = None
 
             # Select appropriate search strategy
-            if criteria == "Title":
-                try:
-                    search_strategy = TitleSearchStrategy()
-                    logger(f"Search book {value} by name completed successfully")
-                except:
-                    logger(f"Search book {value} by name fail")
-            elif criteria == "Author":
-                try:
-                    search_strategy = AuthorSearchStrategy()
-                    logger(f"Search book {value} by author completed successfully")
-                except:
-                    logger(f"Search book {value} by author fail")
-            elif criteria == "Genre":
-                try:
-                    search_strategy = CategorySearchStrategy()
-                    logger("Displayed book by category successfully")
-                except:
-                    logger("Displayed book by category fail")
+            if criteria == "title":
+                search_strategy = TitleSearchStrategy()
 
-            elif criteria == "Year":
-                try:
-                    search_strategy = YearSearchStrategy()
-                    logger(f"Search book {value} by year completed successfully")
-                except:
-                    logger(f"Search book {value} by year fail")
+            elif criteria == "author":
+                search_strategy = AuthorSearchStrategy()
+
+            elif criteria == "category":
+                search_strategy = CategorySearchStrategy()
+
+            elif criteria == "year":
+                search_strategy = YearSearchStrategy()
 
             # Perform search and display results
             search_context = SearchContext(search_strategy)
             found_books = search_context.search(self.library.get_books(), value)
 
             if found_books:
+                logger(f"Search book {value} by {criteria} completed successfully")
                 messagebox.showinfo("Search Results", f"Found books: {', '.join([book.get_title() for book in found_books])}")
             else:
+                logger(f"Search book {value} by {criteria} fail")
                 messagebox.showerror("Search Results", "No books found!")
             window.destroy()
 
@@ -283,7 +271,7 @@ class DashboardScreen(tk.Frame):
             if title !="":
                 messagebox.showinfo("Return Book", self.library.return_book(title))
                 b = self.library.get_book(title)
-                if title in self.library.waiting_list:
+                if title in self.library.get_waiting_list():
                         messagebox.showinfo("Return Book", self.library.pop_waiting_list(b))
                         messagebox.showinfo("Return Book", self.library.borrow_book(title))
 
