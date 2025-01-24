@@ -189,3 +189,4 @@ book added successfully
 book borrowed successfully
 book returned successfully
 book returned fail
+registered successfully
